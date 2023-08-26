@@ -8,6 +8,10 @@
 #include "Engine/World.h"
 #include "NavigationSystem.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "MyProjectGameMode.h"
+#include "MyAITrigger.h"
+
+
 
 
 
@@ -15,6 +19,7 @@
 void AMyEnemiesAIController::BeginPlay() {
 	Super::BeginPlay();
 
+	_isActive = true;
 	_character = GetCharacter();
 
 	if(IsValid(_character))	{
@@ -23,8 +28,24 @@ void AMyEnemiesAIController::BeginPlay() {
 		_characterMovement = _character->GetCharacterMovement();
 	}
 
-	_navSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+	UWorld* world = GetWorld();
 	GetPathFollowingComponent()->OnRequestFinished.AddUObject(this, &AMyEnemiesAIController::OnMovementCompleted);
+
+	if (IsValid(world)) {
+		_navSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(world);
+
+		AMyProjectGameMode* gameMode = Cast<AMyProjectGameMode>(world->GetAuthGameMode());
+		
+		if (IsValid(gameMode)) {
+			AMyAITrigger* triggerAI = Cast<AMyAITrigger>(gameMode->GetAITrigger());
+			if (IsValid(triggerAI)) {
+				triggerAI->OnActivated.AddUObject(this, &AMyEnemiesAIController::OnAIActivated);
+				_isActive = false;
+				return;
+			}
+		}
+	}
+
 	Patrol();
 }
 
@@ -35,7 +56,26 @@ void AMyEnemiesAIController::Tick(float DeltaTime)
 
 void AMyEnemiesAIController::OnMovementCompleted( FAIRequestID RequestID, const FPathFollowingResult& Result)
 {
+	if (!_isActive) {
+		return;
+	}
+
 	Patrol();
+}
+
+void AMyEnemiesAIController::OnAIActivated(AActor* actor)
+{
+	_isActive = !_isActive;
+	PrimaryActorTick.bCanEverTick = _isActive;
+	_character->SetActorTickEnabled(_isActive);
+	_character->SetActorHiddenInGame(!_isActive);
+	
+	if (_isActive){
+		Patrol();
+	} else {
+		StopMovement();
+		_character->SetActorLocation(_patrolPoint);
+	}
 }
 
 void AMyEnemiesAIController::Patrol()

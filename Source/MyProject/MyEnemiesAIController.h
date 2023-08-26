@@ -23,6 +23,8 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 	void OnMovementCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result);
+	UFUNCTION()
+	virtual void OnAIActivated(AActor* actor);
 
 private:
 	void Patrol();
@@ -33,5 +35,5 @@ private:
 	class UNavigationSystemV1* _navSystem{ nullptr };
 	FVector _patrolPoint;
 	FVector _targetPoint;
-
+	bool _isActive;
 };

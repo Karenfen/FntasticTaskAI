@@ -13,6 +13,11 @@ class AMyProjectGameMode : public AGameModeBase
 
 public:
 	AMyProjectGameMode();
+	void SetAITrigger(AActor* trigger) { AItrigger = trigger; };
+	AActor* GetAITrigger() { return AItrigger; };
+
+private:
+	AActor* AItrigger{ nullptr };
 };
 
 
