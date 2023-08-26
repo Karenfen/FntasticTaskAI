@@ -41,7 +41,7 @@ protected:
 	UFUNCTION()
 	virtual void ActorsPerceptionUpdated(const TArray< AActor* >& UpdatedActors) override;
 	UFUNCTION()
-	void OnNoiseHeard(AActor* NoiseInstigator, const FVector& Location, float Volume);
+	void OnNoiseHeard(AActor* NoiseInstigator, FAIStimulus stimulus);
 
 private:
 	void Patrol();

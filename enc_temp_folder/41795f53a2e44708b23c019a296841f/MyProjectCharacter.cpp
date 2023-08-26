@@ -10,8 +10,6 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include <Components/AudioComponent.h>
-#include "Components/PawnNoiseEmitterComponent.h"
-
 
 
 
@@ -56,8 +54,6 @@ AMyProjectCharacter::AMyProjectCharacter()
 	FootstepSoundComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("FootstepSound"));
 	FootstepSoundComponent->SetupAttachment(RootComponent);
 	FootstepSoundComponent->SetAutoActivate(false);
-
-	Noise = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("Noise"));
 }
 
 void AMyProjectCharacter::Jump()

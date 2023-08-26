@@ -41,9 +41,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FootstepSound")
 	class UAudioComponent* FootstepSoundComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FootstepSound")
-	class UPawnNoiseEmitterComponent* Noise;
-
 public:
 	AMyProjectCharacter();
 	virtual void Jump() override;

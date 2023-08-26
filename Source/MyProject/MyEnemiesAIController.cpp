@@ -16,6 +16,7 @@
 
 
 
+
 AMyEnemiesAIController::AMyEnemiesAIController()
 {
 	SightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("Sight Config"));
@@ -31,6 +32,7 @@ AMyEnemiesAIController::AMyEnemiesAIController()
 			AIPerceptionComponent->ConfigureSense(*HearingConfig);
 		}
 		SetPerceptionComponent(*AIPerceptionComponent);
+		AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AMyEnemiesAIController::OnNoiseHeard);
 	}
 }
 
@@ -121,18 +123,23 @@ void AMyEnemiesAIController::ActorsPerceptionUpdated(const TArray< AActor* >& Up
 			_isChasing = false;
 			MoveToLocation(AIPerceptionComponent->GetActorInfo(*_intruder)->GetLastStimulusLocation());
 		}
-
 	}
 	else {
 		_isChasing = false;
-		Patrol();
 	}
 }
 
-void AMyEnemiesAIController::OnNoiseHeard(AActor* NoiseInstigator, const FVector& Location, float Volume)
+void AMyEnemiesAIController::OnNoiseHeard(AActor* NoiseInstigator, FAIStimulus stimulus)
 {
-	if (IsValid(_intruder) && _intruder == NoiseInstigator) {
-		MoveToRandomPointInRadius(Location, researchRadius);
+	if (IsValid(HearingConfig)) {
+		if (stimulus.Type == HearingConfig->GetSenseID()) {
+			if (NoiseInstigator == _intruder && IsValid(_intruder)) {
+				MoveToRandomPointInRadius(_intruder->GetActorLocation(), researchRadius);
+			}
+		}
+
+		FString Message = FString::Printf(TEXT("Персонаж услышал звук в точке %s с громкостью %f"), *_intruder->GetActorLocation().ToString(), 1.0f);
+		UE_LOG(LogTemp, Warning, TEXT("%s"), *Message);
 	}
 }
 
