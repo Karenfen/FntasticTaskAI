@@ -8,10 +8,10 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "MyProjectGameMode.h"
 #include "MyAITrigger.h"
-#include "Perception/AIPerceptionTypes.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISenseConfig_Hearing.h"
+
 
 
 
@@ -32,15 +32,13 @@ AMyEnemiesAIController::AMyEnemiesAIController()
 			AIPerceptionComponent->ConfigureSense(*HearingConfig);
 		}
 		SetPerceptionComponent(*AIPerceptionComponent);
-		AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AMyEnemiesAIController::OnNoiseHeard);
+		AIPerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AMyEnemiesAIController::OnTargetPerceptionUpdated);
 	}
 }
 
 void AMyEnemiesAIController::BeginPlay() {
 	Super::BeginPlay();
 
-	_isActive = true;
-	_isChasing = false;
 	_character = GetCharacter();
 
 	if(IsValid(_character))	{
@@ -73,21 +71,19 @@ void AMyEnemiesAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (_isChasing && IsValid(_intruder)) {
+	if (_state == EAIControllerState::Chasing) {
 		MoveToActor(_intruder);
+	}
+	else if (_state == EAIControllerState::Researching) {
+		MoveToLocation(_targetPoint);
 	}
 }
 
 void AMyEnemiesAIController::OnMovementCompleted( FAIRequestID RequestID, const FPathFollowingResult& Result)
 {
-	if (!_isActive) {
-		return;
+	if (Result.IsSuccess()) {
+		Patrol();
 	}
-	if (_isChasing) {
-		return;
-	}
-
-	Patrol();
 }
 
 void AMyEnemiesAIController::OnAIActivated(AActor* actor)
@@ -107,55 +103,84 @@ void AMyEnemiesAIController::OnAIActivated(AActor* actor)
 	}
 }
 
-void AMyEnemiesAIController::ActorsPerceptionUpdated(const TArray< AActor* >& UpdatedActors)
+void AMyEnemiesAIController::OnActorDetected(AActor* actor)
 {
-	if (IsValid(_intruder) && UpdatedActors.Contains(_intruder)) {
-		FHitResult HitResult;
-		FCollisionQueryParams Params;
-		Params.AddIgnoredActor(_character);
-		GetWorld()->LineTraceSingleByChannel(HitResult, _character->GetActorLocation(),
-			_intruder->GetActorLocation(), ECC_Visibility, Params);
+	if (!IsValid(_intruder) || _intruder != actor) {
+		return;
+	}
 
-		if (HitResult.GetActor() == _intruder) {
-			_isChasing = true;
-		}
-		else {
-			_isChasing = false;
-			MoveToLocation(AIPerceptionComponent->GetActorInfo(*_intruder)->GetLastStimulusLocation());
-		}
+	if (_state == EAIControllerState::Chasing) {
+		SetState(EAIControllerState::Researching);
+		_targetPoint = AIPerceptionComponent->GetActorInfo(*actor)->GetLastStimulusLocation();
 	}
 	else {
-		_isChasing = false;
+		SetState(EAIControllerState::Chasing);
 	}
 }
 
-void AMyEnemiesAIController::OnNoiseHeard(AActor* NoiseInstigator, FAIStimulus stimulus)
+void AMyEnemiesAIController::SetState(EAIControllerState newState)
 {
-	if (IsValid(HearingConfig)) {
-		if (stimulus.Type == HearingConfig->GetSenseID()) {
-			if (NoiseInstigator == _intruder && IsValid(_intruder)) {
-				MoveToRandomPointInRadius(_intruder->GetActorLocation(), researchRadius);
-			}
+	switch (newState)
+	{
+	case EAIControllerState::Chasing:
+		_state = EAIControllerState::Chasing;
+		if (IsValid(_characterMovement)) {
+			_characterMovement->MaxWalkSpeed = chaseSpeed;
 		}
+		break;
+	case EAIControllerState::Researching:
+		_state = EAIControllerState::Researching;
+		if (IsValid(_characterMovement)) {
+			_characterMovement->MaxWalkSpeed = researchSpeed;
+		}
+		break;
+	case EAIControllerState::Patrol:
+		_state = EAIControllerState::Patrol;
+		if (IsValid(_characterMovement)) {
+			_characterMovement->MaxWalkSpeed = patrolSpeed;
+		}
+		break;
+	default:
+		break;
+	}
+}
 
-		FString Message = FString::Printf(TEXT("Персонаж услышал звук в точке %s с громкостью %f"), *_intruder->GetActorLocation().ToString(), 1.0f);
-		UE_LOG(LogTemp, Warning, TEXT("%s"), *Message);
+void AMyEnemiesAIController::OnTargetPerceptionUpdated(AActor* actor, FAIStimulus simulus)
+{
+	if (simulus.Type == UAISense::GetSenseID(UAISense_Sight::StaticClass())) {
+		OnActorDetected(actor);
+	}
+	else if (simulus.Type == UAISense::GetSenseID(UAISense_Hearing::StaticClass())) {
+		OnNoiseHeard(actor);
+	}
+}
+
+void AMyEnemiesAIController::OnNoiseHeard(AActor* NoiseInstigator)
+{
+	if (!IsValid(_intruder) || _intruder != NoiseInstigator) {
+		return;
+	}
+
+	if (_state == EAIControllerState::Patrol) {
+		SetState(EAIControllerState::Researching);
+		_targetPoint = GetRandomPointInRadius(_intruder->GetActorLocation(), researchRadius);
 	}
 }
 
 void AMyEnemiesAIController::Patrol()
 {
-	MoveToRandomPointInRadius(_patrolPoint, patrolRange);
+	SetState(EAIControllerState::Patrol);
+	MoveToLocation(GetRandomPointInRadius(_patrolPoint, patrolRadius));
 }
 
-void AMyEnemiesAIController::MoveToRandomPointInRadius(const FVector& Taregt, float Radius)
+FVector AMyEnemiesAIController::GetRandomPointInRadius(const FVector& Taregt, float Radius)
 {
 	if (IsValid(_navSystem)) {
 		FNavPathPoint newLocation;
-		if (_navSystem->GetRandomReachablePointInRadius(_patrolPoint, patrolRange, newLocation)) {
-			_targetPoint = newLocation.Location;
+		if (_navSystem->GetRandomReachablePointInRadius(Taregt, Radius, newLocation)) {
+			return newLocation.Location;
 		}
 	}
 
-	MoveToLocation(_targetPoint);
+	return _patrolPoint;
 }

@@ -4,8 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "AIController.h"
+#include "Perception/AIPerceptionTypes.h"
 #include "MyEnemiesAIController.generated.h"
 
+UENUM(BlueprintType)
+enum class EAIControllerState : uint8
+{
+	Chasing,
+	Researching,
+	Patrol
+};
 
 UCLASS()
 class MYPROJECT_API AMyEnemiesAIController : public AAIController
@@ -13,11 +21,20 @@ class MYPROJECT_API AMyEnemiesAIController : public AAIController
 	GENERATED_BODY()
 	
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Patrol|Range")
-	float patrolRange = 2000.0f;	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Patrol|Radius")
+	float patrolRadius = 2000.0f;	
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Research|Radius")
-	float researchRadius = 1000.0f;
+	float researchRadius = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Speed|Research")
+	float researchSpeed = 400.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Speed|Chase")
+	float chaseSpeed = 600.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Speed|Patrol")
+	float patrolSpeed = 300.0f;
 
 	// perceptions
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI Perception")
@@ -35,25 +52,25 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
-	void OnMovementCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result);
 	UFUNCTION()
-	virtual void OnAIActivated(AActor* actor);
-	UFUNCTION()
-	virtual void ActorsPerceptionUpdated(const TArray< AActor* >& UpdatedActors) override;
-	UFUNCTION()
-	void OnNoiseHeard(AActor* NoiseInstigator, FAIStimulus stimulus);
+	void OnTargetPerceptionUpdated(AActor* actor, FAIStimulus simulus);
 
 private:
 	void Patrol();
-	void MoveToRandomPointInRadius(const FVector& Taregt, float Radius);
+	FVector GetRandomPointInRadius(const FVector& Taregt, float Radius);
+	void OnMovementCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result);
+	virtual void OnAIActivated(AActor* actor);
+	void OnNoiseHeard(AActor* NoiseInstigator);
+	void OnActorDetected(AActor* actor);
+	void SetState(EAIControllerState newState);
 
 private:
-	class ACharacter* _character{ nullptr };
-	class UCharacterMovementComponent* _characterMovement{ nullptr };
-	class UNavigationSystemV1* _navSystem{ nullptr };
+	class ACharacter* _character { nullptr };
+	class UCharacterMovementComponent* _characterMovement { nullptr };
+	class UNavigationSystemV1* _navSystem { nullptr };
 	FVector _patrolPoint;
 	FVector _targetPoint;
-	bool _isActive;
-	AActor* _intruder{ nullptr };
-	bool _isChasing;
+	AActor* _intruder { nullptr };
+	bool _isActive{ true };
+	EAIControllerState _state{ EAIControllerState::Patrol };
 };

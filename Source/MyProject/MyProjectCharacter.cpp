@@ -63,7 +63,7 @@ AMyProjectCharacter::AMyProjectCharacter()
 void AMyProjectCharacter::Jump()
 {
 	Super::Jump();
-	MakeNoise();
+	MakeNoise(1.0f, this, GetActorLocation());
 }
 
 void AMyProjectCharacter::BeginPlay()
@@ -158,7 +158,7 @@ void AMyProjectCharacter::UpdateFootstepSound()
 		if (!FootstepSoundComponent->IsPlaying()) {
 			FootstepSoundComponent->Play();
 		}
-		MakeNoise();
+		MakeNoise(1.0f, this, GetActorLocation());
 	}
 	else {
 		if (FootstepSoundComponent->IsPlaying()) {
