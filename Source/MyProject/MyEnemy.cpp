@@ -2,13 +2,21 @@
 
 
 #include "MyEnemy.h"
+#include "components/HealthComponent.h"
+#include "components/GameStruct.h"
+
 
 // Sets default values
 AMyEnemy::AMyEnemy()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("Health	component"));
+	if(HealthComponent) {
+		HealthComponent->OnDie.AddUObject(this, &AMyEnemy::Die);
+		HealthComponent->OnDamaged.AddUObject(this, &AMyEnemy::DamageTaked);
+	}
 }
 
 // Called when the game starts or when spawned
@@ -18,17 +26,26 @@ void AMyEnemy::BeginPlay()
 	
 }
 
-// Called every frame
-void AMyEnemy::Tick(float DeltaTime)
+void AMyEnemy::DamageTaked(FDamageData damageData)
 {
-	Super::Tick(DeltaTime);
-
+	// отображение полоски HP
+	// воспроизведение звука при попадании
+	if (OnAttacked.IsBound()) {
+		OnAttacked.Broadcast(damageData);
+	}
 }
 
-// Called to bind functionality to input
-void AMyEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AMyEnemy::TakeDamage_(FDamageData DamageData)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
+	if (IsValid(HealthComponent)) {
+		HealthComponent->TakeDamage(DamageData);
+	}
 }
 
+void AMyEnemy::Die(AActor* killer)
+{
+	// выключаем AI
+	// запускаем действия при смерти (анимации, звуки)
+	if (OnDie.IsBound())
+		OnDie.Broadcast();
+}

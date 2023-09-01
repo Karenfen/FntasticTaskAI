@@ -11,6 +11,8 @@
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AISenseConfig_Hearing.h"
+#include "MyEnemy.h"
+#include "components/GameStruct.h"
 
 
 
@@ -43,8 +45,12 @@ void AMyEnemiesAIController::BeginPlay() {
 
 	if(IsValid(_character))	{
 		_patrolPoint = _character->GetActorLocation();
-		_targetPoint = _patrolPoint;
 		_characterMovement = _character->GetCharacterMovement();
+
+		AMyEnemy* character = Cast<AMyEnemy>(_character);
+		if (character) {
+			character->OnDie.AddUObject(this, &AMyEnemiesAIController::CharacterIsDead);
+		}
 	}
 	UWorld* world = GetWorld();
 	GetPathFollowingComponent()->OnRequestFinished.AddUObject(this, &AMyEnemiesAIController::OnMovementCompleted);
@@ -69,19 +75,20 @@ void AMyEnemiesAIController::BeginPlay() {
 
 void AMyEnemiesAIController::Tick(float DeltaTime)
 {
+	if (!_isActive) {
+		return;
+	}
+
 	Super::Tick(DeltaTime);
 
 	if (_state == EAIControllerState::Chasing) {
 		MoveToActor(_intruder);
 	}
-	else if (_state == EAIControllerState::Researching) {
-		MoveToLocation(_targetPoint);
-	}
 }
 
 void AMyEnemiesAIController::OnMovementCompleted( FAIRequestID RequestID, const FPathFollowingResult& Result)
 {
-	if (Result.IsSuccess()) {
+	if (Result.IsSuccess() && _state!= EAIControllerState::Chasing) {
 		Patrol();
 	}
 }
@@ -90,7 +97,6 @@ void AMyEnemiesAIController::OnAIActivated(AActor* actor)
 {
 	_isActive = !_isActive;
 	PrimaryActorTick.bCanEverTick = _isActive;
-	_character->SetActorTickEnabled(_isActive);
 	_character->SetActorHiddenInGame(!_isActive);
 	
 	if (_isActive){
@@ -111,7 +117,7 @@ void AMyEnemiesAIController::OnActorDetected(AActor* actor)
 
 	if (_state == EAIControllerState::Chasing) {
 		SetState(EAIControllerState::Researching);
-		_targetPoint = AIPerceptionComponent->GetActorInfo(*actor)->GetLastStimulusLocation();
+		MoveToLocation(AIPerceptionComponent->GetActorInfo(*actor)->GetLastStimulusLocation());
 	}
 	else {
 		SetState(EAIControllerState::Chasing);
@@ -145,8 +151,30 @@ void AMyEnemiesAIController::SetState(EAIControllerState newState)
 	}
 }
 
+void AMyEnemiesAIController::CharacterIsDead()
+{
+	_isActive = false;
+	PrimaryActorTick.bCanEverTick = false;
+	StopMovement();
+}
+
+void AMyEnemiesAIController::CharacterIsAttaked(FDamageData damageData)
+{
+	if (_state == EAIControllerState::Chasing) {
+		return;
+	}
+	if (IsValid(_characterMovement)) {
+		_characterMovement->MaxWalkSpeed = chaseSpeed;
+	}
+	MoveToActor(damageData.Instigator);
+}
+
 void AMyEnemiesAIController::OnTargetPerceptionUpdated(AActor* actor, FAIStimulus simulus)
 {
+	if (!_isActive) {
+		return;
+	}
+
 	if (simulus.Type == UAISense::GetSenseID(UAISense_Sight::StaticClass())) {
 		OnActorDetected(actor);
 	}
@@ -163,7 +191,7 @@ void AMyEnemiesAIController::OnNoiseHeard(AActor* NoiseInstigator)
 
 	if (_state == EAIControllerState::Patrol) {
 		SetState(EAIControllerState::Researching);
-		_targetPoint = GetRandomPointInRadius(_intruder->GetActorLocation(), researchRadius);
+		MoveToLocation(GetRandomPointInRadius(_intruder->GetActorLocation(), researchRadius));
 	}
 }
 

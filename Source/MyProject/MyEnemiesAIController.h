@@ -7,6 +7,9 @@
 #include "Perception/AIPerceptionTypes.h"
 #include "MyEnemiesAIController.generated.h"
 
+struct FDamageData;
+
+
 UENUM(BlueprintType)
 enum class EAIControllerState : uint8
 {
@@ -63,13 +66,14 @@ private:
 	void OnNoiseHeard(AActor* NoiseInstigator);
 	void OnActorDetected(AActor* actor);
 	void SetState(EAIControllerState newState);
+	void CharacterIsDead();
+	void CharacterIsAttaked(FDamageData damageData);
 
 private:
 	class ACharacter* _character { nullptr };
 	class UCharacterMovementComponent* _characterMovement { nullptr };
 	class UNavigationSystemV1* _navSystem { nullptr };
 	FVector _patrolPoint;
-	FVector _targetPoint;
 	AActor* _intruder { nullptr };
 	bool _isActive{ true };
 	EAIControllerState _state{ EAIControllerState::Patrol };
