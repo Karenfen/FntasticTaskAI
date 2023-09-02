@@ -50,6 +50,7 @@ void AMyEnemiesAIController::BeginPlay() {
 		AMyEnemy* character = Cast<AMyEnemy>(_character);
 		if (character) {
 			character->OnDie.AddUObject(this, &AMyEnemiesAIController::CharacterIsDead);
+			character->OnAttacked.AddUObject(this, &AMyEnemiesAIController::CharacterIsAttaked);
 		}
 	}
 	UWorld* world = GetWorld();
@@ -163,10 +164,10 @@ void AMyEnemiesAIController::CharacterIsAttaked(FDamageData damageData)
 	if (_state == EAIControllerState::Chasing) {
 		return;
 	}
-	if (IsValid(_characterMovement)) {
+	if (IsValid(_characterMovement) && IsValid(damageData.Gunner)) {
 		_characterMovement->MaxWalkSpeed = chaseSpeed;
+		MoveToLocation(damageData.Gunner->GetActorLocation());
 	}
-	MoveToActor(damageData.Instigator);
 }
 
 void AMyEnemiesAIController::OnTargetPerceptionUpdated(AActor* actor, FAIStimulus simulus)

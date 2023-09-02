@@ -11,6 +11,7 @@
 #include "EnhancedInputSubsystems.h"
 #include <Components/AudioComponent.h>
 #include "Components/PawnNoiseEmitterComponent.h"
+#include <Kismet/GameplayStatics.h>
 
 
 
@@ -58,12 +59,26 @@ AMyProjectCharacter::AMyProjectCharacter()
 	FootstepSoundComponent->SetAutoActivate(false);
 
 	Noise = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("Noise"));
+
+	// Create a gun mesh component
+	MeshGun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshGun"));
+	MeshGun->SetOnlyOwnerSee(false);			// otherwise won't be visible in the multiplayer
+	MeshGun->bCastDynamicShadow = false;
+	MeshGun->CastShadow = false;
+	// FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
+	MeshGun->SetupAttachment(RootComponent);
+
+	MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
+	MuzzleLocation->SetupAttachment(MeshGun);
+	MuzzleLocation->SetRelativeLocation(FVector(0.2f, 48.4f, -10.6f));
+
+	// Default offset from the character location for projectiles to spawn
+	GunOffset = FVector(100.0f, 0.0f, 10.0f);
 }
 
 void AMyProjectCharacter::Jump()
 {
 	Super::Jump();
-	MakeNoise(1.0f, this, GetActorLocation());
 }
 
 void AMyProjectCharacter::BeginPlay()
@@ -81,6 +96,10 @@ void AMyProjectCharacter::BeginPlay()
 	}
 
 	CharacterMovement = GetCharacterMovement();
+	GunStartRotator = MeshGun->GetRelativeRotation();
+
+	//Attach gun mesh component to Skeleton, doing it here because the skeleton is not yet created in the constructor
+	//MeshGun->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
 }
 
 void AMyProjectCharacter::Tick(float DeltaTime)
@@ -88,6 +107,12 @@ void AMyProjectCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	UpdateFootstepSound();
+}
+
+void AMyProjectCharacter::RotateGun()
+{
+	FRotator newRotator = FollowCamera->GetComponentRotation();
+	MeshGun->SetWorldRotation(FRotator(newRotator.Roll, newRotator.Yaw, -newRotator.Pitch) + GunStartRotator);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -107,9 +132,41 @@ void AMyProjectCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 
 		//Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMyProjectCharacter::Look);
-
+		
+		// Bind fire event
+		PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMyProjectCharacter::OnFire);
 	}
 
+}
+
+void AMyProjectCharacter::OnFire()
+{
+	// try and fire a projectile
+	if (ProjectileClass != nullptr)
+	{
+		UWorld* const World = GetWorld();
+		if (World != nullptr)
+		{
+			const FRotator SpawnRotation = MuzzleLocation->GetComponentRotation();
+			const FVector SpawnLocation = MuzzleLocation->GetComponentLocation();
+
+			//Set Spawn Collision Handling Override
+			FActorSpawnParameters ActorSpawnParams;
+			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			// spawn the projectile at the muzzle
+			ATP_FirstPersonProjectile* projectile = World->SpawnActor<ATP_FirstPersonProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+			if (projectile) {
+				projectile->SetGunner(this);
+			}
+		}
+	}
+
+	// try and play the sound if specified
+	if (FireSound != nullptr)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+	}
+	MakeNoise(1.0f, this, GetActorLocation());
 }
 
 void AMyProjectCharacter::Move(const FInputActionValue& Value)
@@ -133,6 +190,8 @@ void AMyProjectCharacter::Move(const FInputActionValue& Value)
 		AddMovementInput(ForwardDirection, MovementVector.Y);
 		AddMovementInput(RightDirection, MovementVector.X);
 	}
+
+	RotateGun();
 }
 
 void AMyProjectCharacter::Look(const FInputActionValue& Value)
@@ -146,6 +205,8 @@ void AMyProjectCharacter::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
+
+	RotateGun();
 }
 
 void AMyProjectCharacter::UpdateFootstepSound()
@@ -158,7 +219,6 @@ void AMyProjectCharacter::UpdateFootstepSound()
 		if (!FootstepSoundComponent->IsPlaying()) {
 			FootstepSoundComponent->Play();
 		}
-		MakeNoise(1.0f, this, GetActorLocation());
 	}
 	else {
 		if (FootstepSoundComponent->IsPlaying()) {

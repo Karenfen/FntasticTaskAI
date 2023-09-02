@@ -11,7 +11,7 @@ class MYPROJECT_API UHealthComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-	DECLARE_EVENT_OneParam(UHealthComponent, FOnDie, AActor*)
+	DECLARE_EVENT_OneParam(UHealthComponent, FOnDie, FDamageData)
 	DECLARE_EVENT_OneParam(UHealthComponent, FOnHealthChanged, FDamageData)
 
 protected:

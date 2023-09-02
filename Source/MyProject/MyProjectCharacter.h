@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
+#include "TP_FirstPerson/TP_FirstPersonProjectile.h"
 #include "MyProjectCharacter.generated.h"
 
 
@@ -14,6 +15,13 @@ class AMyProjectCharacter : public ACharacter
 	GENERATED_BODY()
 
 protected:
+	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+	USkeletalMeshComponent* MeshGun;
+
+	/** Location on gun mesh where projectiles should spawn. */
+	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+	USceneComponent* MuzzleLocation;
+
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* CameraBoom;
@@ -45,10 +53,25 @@ protected:
 	class UPawnNoiseEmitterComponent* Noise;
 
 public:
+	/** Gun muzzle's offset from the characters location */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+	FVector GunOffset;
+
+	/** Projectile class to spawn */
+	UPROPERTY(EditDefaultsOnly, Category = Projectile)
+	TSubclassOf<class ATP_FirstPersonProjectile> ProjectileClass;
+
+	/** Sound to play each time we fire */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+	USoundBase* FireSound;
+
+
+public:
 	AMyProjectCharacter();
 	virtual void Jump() override;
 
-protected:
+	/** Fires a projectile. */
+	void OnFire();
 
 	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
@@ -58,6 +81,10 @@ protected:
 			
 	void UpdateFootstepSound();
 	bool IsWalking() const;
+	/** Returns CameraBoom subobject **/
+	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	/** Returns FollowCamera subobject **/
+	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -65,14 +92,10 @@ protected:
 	// To add mapping context
 	virtual void BeginPlay();
 	virtual void Tick(float DeltaTime) override;
-
-public:
-	/** Returns CameraBoom subobject **/
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	/** Returns FollowCamera subobject **/
-	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	void RotateGun();
 
 private:
 	class UCharacterMovementComponent* CharacterMovement{ nullptr };
+	FRotator GunStartRotator = FRotator::ZeroRotator;
 };
 

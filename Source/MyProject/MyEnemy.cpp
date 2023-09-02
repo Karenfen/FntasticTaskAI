@@ -42,7 +42,7 @@ void AMyEnemy::TakeDamage_(FDamageData DamageData)
 	}
 }
 
-void AMyEnemy::Die(AActor* killer)
+void AMyEnemy::Die(FDamageData data)
 {
 	// выключаем AI
 	// запускаем действия при смерти (анимации, звуки)

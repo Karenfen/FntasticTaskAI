@@ -23,8 +23,8 @@ struct FDamageData
 	uint16 DamageValue;
 
 	UPROPERTY()
-	AActor* Instigator;
+	AActor* Gun;
 
 	UPROPERTY()
-	AActor* DamageMaker;
+	AActor* Gunner;
 };

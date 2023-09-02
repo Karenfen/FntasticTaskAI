@@ -35,5 +35,5 @@ protected:
 	UFUNCTION()
 	virtual void DamageTaked(FDamageData damageData);
 	UFUNCTION()
-	virtual void Die(AActor* killer);
+	virtual void Die(FDamageData killer);
 };

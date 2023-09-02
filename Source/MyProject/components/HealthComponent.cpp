@@ -12,7 +12,7 @@ void UHealthComponent::TakeDamage(FDamageData DamageData)
 
 	if (CurrentHealth <= 0) {
 		if (OnDie.IsBound())
-			OnDie.Broadcast(DamageData.Instigator);
+			OnDie.Broadcast(DamageData);
 	}
 	else {
 		if (OnDamaged.IsBound())
