@@ -118,7 +118,7 @@ void AMyEnemiesAIController::OnActorDetected(AActor* actor)
 
 	if (_state == EAIControllerState::Chasing) {
 		SetState(EAIControllerState::Researching);
-		MoveToLocation(AIPerceptionComponent->GetActorInfo(*actor)->GetLastStimulusLocation());
+		MoveToLocation(_intruder->GetActorLocation());
 	}
 	else {
 		SetState(EAIControllerState::Chasing);

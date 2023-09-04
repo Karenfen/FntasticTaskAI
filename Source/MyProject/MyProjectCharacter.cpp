@@ -12,6 +12,7 @@
 #include <Components/AudioComponent.h>
 #include "Components/PawnNoiseEmitterComponent.h"
 #include <Kismet/GameplayStatics.h>
+#include "MyAnimInstance.h"
 
 
 
@@ -97,22 +98,32 @@ void AMyProjectCharacter::BeginPlay()
 
 	CharacterMovement = GetCharacterMovement();
 	GunStartRotator = MeshGun->GetRelativeRotation();
-
-	//Attach gun mesh component to Skeleton, doing it here because the skeleton is not yet created in the constructor
-	//MeshGun->AttachToComponent(GetMesh(), FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
+	
+	USkeletalMeshComponent* mesh = GetMesh();
+	if (mesh) {
+		UMyAnimInstance* anim = Cast<UMyAnimInstance>(mesh->GetAnimInstance());
+		if (anim) {
+			anim->OnPlaySound.AddUObject(this, &AMyProjectCharacter::OnAnimTriggered);
+		}
+	}
 }
 
 void AMyProjectCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	UpdateFootstepSound();
 }
 
 void AMyProjectCharacter::RotateGun()
 {
 	FRotator newRotator = FollowCamera->GetComponentRotation();
 	MeshGun->SetWorldRotation(FRotator(newRotator.Roll, newRotator.Yaw, -newRotator.Pitch) + GunStartRotator);
+}
+
+void AMyProjectCharacter::OnAnimTriggered(FName NotifyName)
+{
+	if (NotifyName == FName("Noise")) {
+		MakeNoise(1.0f, this, GetActorLocation());
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -208,31 +219,3 @@ void AMyProjectCharacter::Look(const FInputActionValue& Value)
 
 	RotateGun();
 }
-
-void AMyProjectCharacter::UpdateFootstepSound()
-{
-	if (!(IsValid(FootstepSoundComponent) && IsValid(CharacterMovement))) {
-		return;
-	}
-	
-	if (IsWalking()) {
-		if (!FootstepSoundComponent->IsPlaying()) {
-			FootstepSoundComponent->Play();
-		}
-	}
-	else {
-		if (FootstepSoundComponent->IsPlaying()) {
-			FootstepSoundComponent->Stop();
-		}
-	}
-}
-
-bool AMyProjectCharacter::IsWalking() const
-{
-	if (IsValid(CharacterMovement)) {
-		return (CharacterMovement->IsMovingOnGround() && (CharacterMovement->Velocity != FVector::ZeroVector));
-	}
-	return false;
-}
-
-

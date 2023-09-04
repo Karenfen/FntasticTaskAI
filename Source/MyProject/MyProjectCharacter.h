@@ -79,12 +79,11 @@ public:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 			
-	void UpdateFootstepSound();
-	bool IsWalking() const;
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -93,6 +92,7 @@ protected:
 	virtual void BeginPlay();
 	virtual void Tick(float DeltaTime) override;
 	void RotateGun();
+	void OnAnimTriggered(FName NotifyName);
 
 private:
 	class UCharacterMovementComponent* CharacterMovement{ nullptr };
