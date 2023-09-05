@@ -20,7 +20,7 @@ struct FDamageData
 	GENERATED_BODY()
 
 	UPROPERTY()
-	uint16 DamageValue;
+	int DamageValue;
 
 	UPROPERTY()
 	AActor* Gun;
