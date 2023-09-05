@@ -41,17 +41,14 @@ AMyEnemiesAIController::AMyEnemiesAIController()
 void AMyEnemiesAIController::BeginPlay() {
 	Super::BeginPlay();
 
-	_character = GetCharacter();
+	_character = Cast<AMyEnemy>(GetCharacter());
 
 	if(IsValid(_character))	{
 		_patrolPoint = _character->GetActorLocation();
 		_characterMovement = _character->GetCharacterMovement();
-
-		AMyEnemy* character = Cast<AMyEnemy>(_character);
-		if (character) {
-			character->OnDie.AddUObject(this, &AMyEnemiesAIController::CharacterIsDead);
-			character->OnAttacked.AddUObject(this, &AMyEnemiesAIController::CharacterIsAttaked);
-		}
+		_character->OnDie.AddUObject(this, &AMyEnemiesAIController::CharacterIsDead);
+		_character->OnAttacked.AddUObject(this, &AMyEnemiesAIController::CharacterIsAttaked);
+		_attackDistance = _character->attackRange * 0.7;
 	}
 	UWorld* world = GetWorld();
 	GetPathFollowingComponent()->OnRequestFinished.AddUObject(this, &AMyEnemiesAIController::OnMovementCompleted);
@@ -83,14 +80,19 @@ void AMyEnemiesAIController::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	if (_state == EAIControllerState::Chasing) {
-		MoveToActor(_intruder);
+		MoveToActor(_intruder, _attackDistance);
 	}
 }
 
 void AMyEnemiesAIController::OnMovementCompleted( FAIRequestID RequestID, const FPathFollowingResult& Result)
 {
-	if (Result.IsSuccess() && _state!= EAIControllerState::Chasing) {
-		Patrol();
+	if (Result.IsSuccess()) {
+		if(_state != EAIControllerState::Chasing) {
+			Patrol();
+		}
+		else {
+			Attack();
+		}
 	}
 }
 
@@ -122,6 +124,13 @@ void AMyEnemiesAIController::OnActorDetected(AActor* actor)
 	}
 	else {
 		SetState(EAIControllerState::Chasing);
+	}
+}
+
+void AMyEnemiesAIController::Attack()
+{
+	if (IsValid(_character)) {
+		_character->Attack();
 	}
 }
 

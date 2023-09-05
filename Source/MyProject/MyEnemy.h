@@ -19,15 +19,27 @@ public:
 	FOnDie OnDie;
 	FOnAttacked OnAttacked;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack|Range")
+	float attackRange = 100.0f;
+
 protected:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Components")
 	class UHealthComponent* HealthComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack|Damage")
+	int attackDamage = 10;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack|Speed")
+	float attackTimeout = 3.0f;
+
+	FTimerHandle AttackTimerHandle;
 
 public:
 	// Sets default values for this character's properties
 	AMyEnemy();
 	UFUNCTION()
 	void TakeDamage_(FDamageData DamageData) override;
+	void Attack();
 
 protected:
 	// Called when the game starts or when spawned
@@ -36,4 +48,5 @@ protected:
 	virtual void DamageTaked(FDamageData damageData);
 	UFUNCTION()
 	virtual void Die(FDamageData killer);
+
 };

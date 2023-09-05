@@ -4,6 +4,7 @@
 #include "MyEnemy.h"
 #include "components/HealthComponent.h"
 #include "components/GameStruct.h"
+#include "Engine/Engine.h"
 
 
 // Sets default values
@@ -39,6 +40,48 @@ void AMyEnemy::TakeDamage_(FDamageData DamageData)
 {
 	if (IsValid(HealthComponent)) {
 		HealthComponent->TakeDamage(DamageData);
+	}
+}
+
+void AMyEnemy::Attack()
+{
+	if (!GetWorldTimerManager().IsTimerActive(AttackTimerHandle)) {
+		// Формируем строку для отображения
+		FString DebugText = FString::Printf(TEXT("Attacker: %s, Damage: %d"), *GetName(), attackDamage);
+
+		// Отобразить сообщение на экране
+		GEngine->AddOnScreenDebugMessage(0, 3.0f, FColor::Blue, DebugText);
+
+		GetWorld()->GetTimerManager().SetTimer(AttackTimerHandle, attackTimeout, false);
+
+        // Получаем местоположение и направление взгляда персонажа
+        FVector StartLocation = GetActorLocation();
+        FRotator PlayerRotation = GetActorRotation();
+        FVector EndLocation = StartLocation + (PlayerRotation.Vector() * attackRange);
+
+        // Параметры для луча
+        FHitResult HitResult;
+        FCollisionQueryParams CollisionParams;
+        CollisionParams.AddIgnoredActor(this); // Игнорируем персонажа при проверке
+
+        // Отладочная визуализация луча
+        if (GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_Pawn, CollisionParams)){
+
+			IDamageTaker* hitActor = Cast<IDamageTaker>(HitResult.GetActor());
+			if (hitActor != nullptr) {
+				DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Red, false, 1, 0, 1);
+
+				FDamageData damageData;
+				damageData.DamageValue = attackDamage;
+				damageData.Gunner = this;
+
+				hitActor->TakeDamage_(damageData);
+
+				return;
+			}
+        }
+
+		DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Green, false, 1, 0, 1);
 	}
 }
 

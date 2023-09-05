@@ -39,6 +39,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI|Speed|Patrol")
 	float patrolSpeed = 300.0f;
 
+
 	// perceptions
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI Perception")
 	class UAIPerceptionComponent* AIPerceptionComponent;
@@ -65,16 +66,18 @@ private:
 	virtual void OnAIActivated(AActor* actor);
 	void OnNoiseHeard(AActor* NoiseInstigator);
 	void OnActorDetected(AActor* actor);
+	void Attack();
 	void SetState(EAIControllerState newState);
 	void CharacterIsDead();
 	void CharacterIsAttaked(FDamageData damageData);
 
 private:
-	class ACharacter* _character { nullptr };
+	class AMyEnemy* _character { nullptr };
 	class UCharacterMovementComponent* _characterMovement { nullptr };
 	class UNavigationSystemV1* _navSystem { nullptr };
 	FVector _patrolPoint;
 	AActor* _intruder { nullptr };
 	bool _isActive{ true };
 	EAIControllerState _state{ EAIControllerState::Patrol };
+	float _attackDistance;
 };
