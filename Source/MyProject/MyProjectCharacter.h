@@ -3,15 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
 #include "InputActionValue.h"
 #include "TP_FirstPerson/TP_FirstPersonProjectile.h"
-#include "Interfaces/DamageTaker.h"
+#include "Interfaces/MyCharacterI.h"
+
 #include "MyProjectCharacter.generated.h"
 
 
 UCLASS(config=Game)
-class AMyProjectCharacter : public ACharacter, public IDamageTaker
+class AMyProjectCharacter : public AMyCharacterI
 {
 	GENERATED_BODY()
 
@@ -53,9 +53,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FootstepSound")
 	class UPawnNoiseEmitterComponent* Noise;
 
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Components")
-	class UHealthComponent* HealthComponent;
-
 public:
 	/** Gun muzzle's offset from the characters location */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
@@ -72,7 +69,6 @@ public:
 
 public:
 	AMyProjectCharacter();
-	virtual void Jump() override;
 
 	/** Fires a projectile. */
 	void OnFire();
@@ -88,22 +84,15 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
-	UFUNCTION()
-	void TakeDamage_(FDamageData DamageData) override;
-
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	
 	// To add mapping context
 	virtual void BeginPlay();
-	virtual void Tick(float DeltaTime) override;
 	void RotateGun();
 	void OnAnimTriggered(FName NotifyName);
-	UFUNCTION()
-	virtual void DamageTaked(FDamageData damageData);
-	UFUNCTION()
-	virtual void Die(FDamageData data);
+	virtual void Die(FDamageData data) override;
 
 private:
 	class UCharacterMovementComponent* CharacterMovement{ nullptr };

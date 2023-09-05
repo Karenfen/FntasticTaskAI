@@ -3,12 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
-#include "Interfaces/DamageTaker.h"
+#include "Interfaces/MyCharacterI.h"
+
 #include "MyEnemy.generated.h"
 
 UCLASS()
-class MYPROJECT_API AMyEnemy : public ACharacter, public IDamageTaker
+class MYPROJECT_API AMyEnemy : public AMyCharacterI
 {
 	GENERATED_BODY()
 
@@ -22,10 +22,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack|Range")
 	float attackRange = 100.0f;
 
-protected:
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadWrite, Category = "Components")
-	class UHealthComponent* HealthComponent;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack|Damage")
 	int attackDamage = 10;
 
@@ -38,15 +34,10 @@ public:
 	// Sets default values for this character's properties
 	AMyEnemy();
 	UFUNCTION()
-	void TakeDamage_(FDamageData DamageData) override;
 	void Attack();
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-	UFUNCTION()
-	virtual void DamageTaked(FDamageData damageData);
-	UFUNCTION()
-	virtual void Die(FDamageData killer);
+	virtual void DamageTaked(FDamageData damageData) override;
+	virtual void Die(FDamageData killer) override;
 
 };

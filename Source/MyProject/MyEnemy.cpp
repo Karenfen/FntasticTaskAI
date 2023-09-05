@@ -2,9 +2,6 @@
 
 
 #include "MyEnemy.h"
-#include "components/HealthComponent.h"
-#include "components/GameStruct.h"
-#include "Engine/Engine.h"
 
 
 // Sets default values
@@ -12,34 +9,16 @@ AMyEnemy::AMyEnemy()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
-
-	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("Health	component"));
-	if(HealthComponent) {
-		HealthComponent->OnDie.AddUObject(this, &AMyEnemy::Die);
-		HealthComponent->OnDamaged.AddUObject(this, &AMyEnemy::DamageTaked);
-	}
-}
-
-// Called when the game starts or when spawned
-void AMyEnemy::BeginPlay()
-{
-	Super::BeginPlay();
-	
 }
 
 void AMyEnemy::DamageTaked(FDamageData damageData)
 {
+	Super::DamageTaked(damageData);
+
 	// отображение полоски HP
 	// воспроизведение звука при попадании
 	if (OnAttacked.IsBound()) {
 		OnAttacked.Broadcast(damageData);
-	}
-}
-
-void AMyEnemy::TakeDamage_(FDamageData DamageData)
-{
-	if (IsValid(HealthComponent)) {
-		HealthComponent->TakeDamage(DamageData);
 	}
 }
 
@@ -87,6 +66,8 @@ void AMyEnemy::Attack()
 
 void AMyEnemy::Die(FDamageData data)
 {
+	Super::Die(data);
+
 	// выключаем AI
 	// запускаем действия при смерти (анимации, звуки)
 	if (OnDie.IsBound())

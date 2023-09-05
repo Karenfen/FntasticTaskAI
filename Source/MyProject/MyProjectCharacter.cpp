@@ -13,7 +13,6 @@
 #include "Components/PawnNoiseEmitterComponent.h"
 #include <Kismet/GameplayStatics.h>
 #include "MyAnimInstance.h"
-#include "components/HealthComponent.h"
 
 
 
@@ -76,17 +75,6 @@ AMyProjectCharacter::AMyProjectCharacter()
 
 	// Default offset from the character location for projectiles to spawn
 	GunOffset = FVector(100.0f, 0.0f, 10.0f);
-
-	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("Health	component"));
-	if (HealthComponent) {
-		HealthComponent->OnDie.AddUObject(this, &AMyProjectCharacter::Die);
-		HealthComponent->OnDamaged.AddUObject(this, &AMyProjectCharacter::DamageTaked);
-	}
-}
-
-void AMyProjectCharacter::Jump()
-{
-	Super::Jump();
 }
 
 void AMyProjectCharacter::BeginPlay()
@@ -115,11 +103,6 @@ void AMyProjectCharacter::BeginPlay()
 	}
 }
 
-void AMyProjectCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-
 void AMyProjectCharacter::RotateGun()
 {
 	FRotator newRotator = FollowCamera->GetComponentRotation();
@@ -133,37 +116,11 @@ void AMyProjectCharacter::OnAnimTriggered(FName NotifyName)
 	}
 }
 
-void AMyProjectCharacter::DamageTaked(FDamageData damageData)
-{
-	// Формируем строку для отображения
-	FString DebugText = FString::Printf(TEXT("Damage: %d Health: %.d"), damageData.DamageValue, HealthComponent->GetCurrentHealth());
-
-	// Отобразить сообщение на экране
-	GEngine->AddOnScreenDebugMessage(3, 3.0f, FColor::Green, DebugText);
-}
-
 void AMyProjectCharacter::Die(FDamageData data)
 {
-	// Формируем строку для отображения
-	FString DebugText = FString::Printf(TEXT("IS DEAD! Killer: %s"), *data.Gunner->GetName());
+	Super::Die(data);
 
-	// Отобразить сообщение на экране
-	GEngine->AddOnScreenDebugMessage(2, 3.0f, FColor::Black, DebugText);
-}
-
-//////////////////////////////////////////////////////////////////////////
-// Input
-
-void AMyProjectCharacter::TakeDamage_(FDamageData DamageData)
-{
-	if (IsValid(HealthComponent)) {
-		HealthComponent->TakeDamage(DamageData);
-	}
-	// Формируем строку для отображения
-	FString DebugText = FString::Printf(TEXT("Tacked damege! Attacker: %s, Damage: %d"), *DamageData.Gunner->GetName(), DamageData.DamageValue);
-
-	// Отобразить сообщение на экране
-	GEngine->AddOnScreenDebugMessage(1, 3.0f, FColor::Red, DebugText);
+	UGameplayStatics::OpenLevel(this, *GetWorld()->GetMapName(), false);
 }
 
 void AMyProjectCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)

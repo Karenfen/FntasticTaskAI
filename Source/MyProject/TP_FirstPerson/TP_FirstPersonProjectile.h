@@ -25,7 +25,7 @@ protected:
 	UProjectileMovementComponent* ProjectileMovement;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Damage")
-	float Damage = 10;
+	int Damage = 10;
 
 public:
 	ATP_FirstPersonProjectile();

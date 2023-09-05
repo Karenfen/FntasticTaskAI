@@ -41,6 +41,7 @@ void ATP_FirstPersonProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* Othe
 
 	IDamageTaker* enemy = Cast<IDamageTaker>(OtherActor);
 	if (enemy) {
+		damageData.DamageValue = Damage;
 		enemy->TakeDamage_(damageData);
 	}
 	// Only add impulse and destroy projectile if we hit a physics
